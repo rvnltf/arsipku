@@ -18,7 +18,7 @@ The main purpose is to allow authorized users to:
 - View and download archived documents without retrieving physical archives.
 - Track user activities and document management history.
 
-This is a standalone application. It is NOT integrated with Digital Office, CI3, or any existing enterprise application.
+This is a standalone application. It is NOT integrated with any existing enterprise application.
 
 The initial application scope is strictly limited to INCOMING MAIL. Do not implement outgoing mail management unless explicitly requested in the future.
 
