@@ -1,0 +1,156 @@
+
+name: arsip-surat
+
+services:
+
+  # =========================
+  # FRONTEND
+  # =========================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      network: host
+      args:
+        BACKEND_URL: http://arsip-backend:4000
+
+    container_name: arsip-frontend
+
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+
+    expose:
+      - "3000"
+
+    networks:
+      proxy:
+        aliases:
+          - arsip-frontend
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+  # =========================
+  # BACKEND
+  # =========================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: arsip-backend
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+    expose:
+      - "4000"
+
+    volumes:
+      - ./storage/documents:/app/storage/documents
+
+    networks:
+      proxy:
+        aliases:
+          - arsip-backend
+      internal:
+
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+
+  # =========================
+  # DATABASE
+  # =========================
+  mariadb:
+    image: mariadb:11.4
+
+    container_name: arsip-db
+
+    restart: unless-stopped
+
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+    networks:
+      - internal
+
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+
+# =========================
+# NETWORKS
+# =========================
+networks:
+
+  proxy:
+    external: true
+    name: proxy
+
+  internal:
+    name: arsip-internal
+    internal: true
+
+
+# =========================
+# VOLUMES
+# =========================
+volumes:
+
+  mariadb_data:
+    name: arsip-mariadb-data
