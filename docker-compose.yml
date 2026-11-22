@@ -12,7 +12,7 @@ services:
       dockerfile: Dockerfile
       network: host
       args:
-        BACKEND_URL: http://arsip-backend:4000
+        BACKEND_URL: http://backend:4000
 
     container_name: arsip-frontend
 
@@ -30,6 +30,7 @@ services:
       proxy:
         aliases:
           - arsip-frontend
+      app:
 
     depends_on:
       backend:
@@ -59,9 +60,6 @@ services:
 
     restart: unless-stopped
 
-    env_file:
-      - .env
-
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -78,10 +76,8 @@ services:
       - ./storage/documents:/app/storage/documents
 
     networks:
-      proxy:
-        aliases:
-          - arsip-backend
-      internal:
+      - app  
+      - internal
 
     depends_on:
       mariadb:
@@ -141,6 +137,9 @@ networks:
   proxy:
     external: true
     name: proxy
+
+  app:
+    name: arsip-app
 
   internal:
     name: arsip-internal
